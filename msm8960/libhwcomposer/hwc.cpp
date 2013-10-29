@@ -142,22 +142,18 @@ static int hwc_prepare_primary(hwc_composer_device_1 *dev,
     if (LIKELY(list && list->numHwLayers > 1) &&
             ctx->dpyAttr[dpy].isActive) {
         reset_layer_prop(ctx, dpy, list->numHwLayers - 1);
-        uint32_t last = list->numHwLayers - 1;
-        hwc_layer_1_t *fbLayer = &list->hwLayers[last];
-        if(fbLayer->handle) {
-            setListStats(ctx, list, dpy);
-            int fbZOrder = ctx->mMDPComp[dpy]->prepare(ctx, list);
-            if(fbZOrder >= 0)
-                ctx->mFBUpdate[dpy]->prepare(ctx, list, fbZOrder);
+        setListStats(ctx, list, dpy);
+        int fbZOrder = ctx->mMDPComp[dpy]->prepare(ctx, list);
+        if(fbZOrder >= 0)
+            ctx->mFBUpdate[dpy]->prepare(ctx, list, fbZOrder);
 
-            /* Temporarily commenting out C2D until we support partial
-               copybit composition for mixed mode MDP
+        /* Temporarily commenting out C2D until we support partial
+           copybit composition for mixed mode MDP
 
-            // Use Copybit, when MDP comp fails
-            if((fbZOrder >= 0) && ctx->mCopyBit[dpy])
-                ctx->mCopyBit[dpy]->prepare(ctx, list, dpy);
-            */
-        }
+        // Use Copybit, when MDP comp fails
+        if((fbZOrder >= 0) && ctx->mCopyBit[dpy])
+            ctx->mCopyBit[dpy]->prepare(ctx, list, dpy);
+        */
     }
     return 0;
 }
@@ -170,23 +166,19 @@ static int hwc_prepare_external(hwc_composer_device_1 *dev,
             ctx->dpyAttr[dpy].isActive &&
             ctx->dpyAttr[dpy].connected) {
         reset_layer_prop(ctx, dpy, list->numHwLayers - 1);
-        uint32_t last = list->numHwLayers - 1;
-        hwc_layer_1_t *fbLayer = &list->hwLayers[last];
         if(!ctx->dpyAttr[dpy].isPause) {
-            if(fbLayer->handle) {
-                ctx->mExtDispConfiguring = false;
-                setListStats(ctx, list, dpy);
-                int fbZOrder = ctx->mMDPComp[dpy]->prepare(ctx, list);
-                if(fbZOrder >= 0)
-                    ctx->mFBUpdate[dpy]->prepare(ctx, list, fbZOrder);
+            ctx->mExtDispConfiguring = false;
+            setListStats(ctx, list, dpy);
+            int fbZOrder = ctx->mMDPComp[dpy]->prepare(ctx, list);
+            if(fbZOrder >= 0)
+                ctx->mFBUpdate[dpy]->prepare(ctx, list, fbZOrder);
 
-                /* Temporarily commenting out C2D until we support partial
-                   copybit composition for mixed mode MDP
+            /* Temporarily commenting out C2D until we support partial
+               copybit composition for mixed mode MDP
 
-                if((fbZOrder >= 0) && ctx->mCopyBit[dpy])
-                    ctx->mCopyBit[dpy]->prepare(ctx, list, dpy);
-                */
-            }
+            if((fbZOrder >= 0) && ctx->mCopyBit[dpy])
+                ctx->mCopyBit[dpy]->prepare(ctx, list, dpy);
+            */
         } else {
             // External Display is in Pause state.
             // ToDo:
