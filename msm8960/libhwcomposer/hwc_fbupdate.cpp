@@ -63,9 +63,19 @@ bool FBUpdateLowRes::configure(hwc_context_t *ctx, hwc_display_contents_1 *list,
     hwc_layer_1_t *layer = &list->hwLayers[list->numHwLayers - 1];
     if (LIKELY(ctx->mOverlay)) {
         overlay::Overlay& ov = *(ctx->mOverlay);
-        private_handle_t *hnd = (private_handle_t *)layer->handle;
-        ovutils::Whf info(getWidth(hnd), getHeight(hnd),
-                          ovutils::getMdpFormat(hnd->format), hnd->size);
+        hwc_rect_t displayFrame = layer->displayFrame;
+        int alignedWidth = 0;
+        int alignedHeight = 0;
+
+        getBufferSizeAndDimensions(displayFrame.right - displayFrame.left,
+                displayFrame.bottom - displayFrame.top,
+                HAL_PIXEL_FORMAT_RGBA_8888,
+                alignedWidth,
+                alignedHeight);
+
+        ovutils::Whf info(alignedWidth,
+                alignedHeight,
+                ovutils::getMdpFormat(HAL_PIXEL_FORMAT_RGBA_8888));
 
         //Request an RGB pipe
         ovutils::eDest dest = ov.nextPipe(ovutils::OV_MDP_PIPE_ANY, mDpy);
@@ -105,7 +115,7 @@ bool FBUpdateLowRes::configure(hwc_context_t *ctx, hwc_display_contents_1 *list,
             static_cast<ovutils::eTransform>(transform);
         ov.setTransform(orient, dest);
 
-        hwc_rect_t displayFrame = sourceCrop;
+        displayFrame = sourceCrop;
         ovutils::Dim dpos(displayFrame.left,
                           displayFrame.top,
                           displayFrame.right - displayFrame.left,
@@ -167,9 +177,19 @@ bool FBUpdateHighRes::configure(hwc_context_t *ctx,
     hwc_layer_1_t *layer = &list->hwLayers[list->numHwLayers - 1];
     if (LIKELY(ctx->mOverlay)) {
         overlay::Overlay& ov = *(ctx->mOverlay);
-        private_handle_t *hnd = (private_handle_t *)layer->handle;
-        ovutils::Whf info(getWidth(hnd), getHeight(hnd),
-                          ovutils::getMdpFormat(hnd->format), hnd->size);
+        hwc_rect_t displayFrame = layer->displayFrame;
+        int alignedWidth = 0;
+        int alignedHeight = 0;
+
+        getBufferSizeAndDimensions(displayFrame.right - displayFrame.left,
+                displayFrame.bottom - displayFrame.top,
+                HAL_PIXEL_FORMAT_RGBA_8888,
+                alignedWidth,
+                alignedHeight);
+
+        ovutils::Whf info(alignedWidth,
+                alignedHeight,
+                ovutils::getMdpFormat(HAL_PIXEL_FORMAT_RGBA_8888));
 
         //Request left RGB pipe
         ovutils::eDest destL = ov.nextPipe(ovutils::OV_MDP_PIPE_RGB, mDpy);
@@ -234,7 +254,7 @@ bool FBUpdateHighRes::configure(hwc_context_t *ctx,
         ov.setTransform(orient, destL);
         ov.setTransform(orient, destR);
 
-        hwc_rect_t displayFrame = sourceCrop;
+        displayFrame = sourceCrop;
         //For FB left, top will always be 0
         //That should also be the case if using 2 mixers for single display
         ovutils::Dim dposL(displayFrame.left,
