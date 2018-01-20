@@ -41,27 +41,45 @@
 
 namespace sdm {
 
-HWCBufferAllocator::HWCBufferAllocator() {
+DisplayError HWCBufferAllocator::Init() {
   int err = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module_);
   if (err != 0) {
-    DLOGE("FATAL: can not open GRALLOC module");
-  } else {
-    gralloc1_open(module_, &gralloc_device_);
+    DLOGE("FATAL: can not get GRALLOC module");
+    return kErrorResources;
   }
-  if (gralloc_device_ != nullptr) {
-    ReleaseBuffer_ = reinterpret_cast<GRALLOC1_PFN_RELEASE>(
-        gralloc_device_->getFunction(gralloc_device_, GRALLOC1_FUNCTION_RELEASE));
-    Perform_ = reinterpret_cast<GRALLOC1_PFN_PERFORM>(
-        gralloc_device_->getFunction(gralloc_device_, GRALLOC1_FUNCTION_PERFORM));
-    Lock_ = reinterpret_cast<GRALLOC1_PFN_LOCK>(
-        gralloc_device_->getFunction(gralloc_device_, GRALLOC1_FUNCTION_LOCK));
+
+  err = gralloc1_open(module_, &gralloc_device_);
+  if (err != 0) {
+    DLOGE("FATAL: can not open GRALLOC device");
+    return kErrorResources;
   }
+
+  if (gralloc_device_ == nullptr) {
+    DLOGE("FATAL: gralloc device is null");
+    return kErrorResources;
+  }
+
+  ReleaseBuffer_ = reinterpret_cast<GRALLOC1_PFN_RELEASE>(
+      gralloc_device_->getFunction(gralloc_device_, GRALLOC1_FUNCTION_RELEASE));
+  Perform_ = reinterpret_cast<GRALLOC1_PFN_PERFORM>(
+      gralloc_device_->getFunction(gralloc_device_, GRALLOC1_FUNCTION_PERFORM));
+  Lock_ = reinterpret_cast<GRALLOC1_PFN_LOCK>(
+      gralloc_device_->getFunction(gralloc_device_, GRALLOC1_FUNCTION_LOCK));
+  Unlock_ = reinterpret_cast<GRALLOC1_PFN_UNLOCK>(
+      gralloc_device_->getFunction(gralloc_device_, GRALLOC1_FUNCTION_UNLOCK));
+
+  return kErrorNone;
 }
 
-HWCBufferAllocator::~HWCBufferAllocator() {
+DisplayError HWCBufferAllocator::Deinit() {
   if (gralloc_device_ != nullptr) {
-    gralloc1_close(gralloc_device_);
+    int err = gralloc1_close(gralloc_device_);
+    if (err != 0) {
+      DLOGE("FATAL: can not close GRALLOC device");
+      return kErrorResources;
+    }
   }
+  return kErrorNone;
 }
 
 DisplayError HWCBufferAllocator::AllocateBuffer(BufferInfo *buffer_info) {
@@ -80,6 +98,10 @@ DisplayError HWCBufferAllocator::AllocateBuffer(BufferInfo *buffer_info) {
     alloc_flags |= GRALLOC1_PRODUCER_USAGE_PROTECTED;
   }
 
+  if (buffer_config.secure_camera) {
+    alloc_flags |= GRALLOC1_PRODUCER_USAGE_CAMERA;
+  }
+
   if (!buffer_config.cache) {
     // Allocate uncached buffers
     alloc_flags |= GRALLOC_USAGE_PRIVATE_UNCACHED;
@@ -90,7 +112,7 @@ DisplayError HWCBufferAllocator::AllocateBuffer(BufferInfo *buffer_info) {
   }
 
   uint64_t producer_usage = alloc_flags;
-  uint64_t consumer_usage = alloc_flags;
+  uint64_t consumer_usage = (alloc_flags | GRALLOC1_CONSUMER_USAGE_HWCOMPOSER);
   // CreateBuffer
   private_handle_t *hnd = nullptr;
   Perform_(gralloc_device_, GRALLOC1_MODULE_PERFORM_ALLOCATE_BUFFER, width, height, format,
@@ -99,6 +121,8 @@ DisplayError HWCBufferAllocator::AllocateBuffer(BufferInfo *buffer_info) {
   if (hnd) {
     alloc_buffer_info->fd = hnd->fd;
     alloc_buffer_info->stride = UINT32(hnd->width);
+    alloc_buffer_info->aligned_width = UINT32(hnd->width);
+    alloc_buffer_info->aligned_height = UINT32(hnd->height);
     alloc_buffer_info->size = hnd->size;
   } else {
     DLOGE("Failed to allocate memory");
@@ -136,6 +160,9 @@ void HWCBufferAllocator::GetAlignedWidthAndHeight(int width, int height, int for
   gralloc1_consumer_usage_t consumer_usage = GRALLOC1_CONSUMER_USAGE_NONE;
   if (alloc_type & GRALLOC_USAGE_HW_FB) {
     consumer_usage = GRALLOC1_CONSUMER_USAGE_CLIENT_TARGET;
+  }
+  if (alloc_type & GRALLOC_USAGE_PRIVATE_ALLOC_UBWC) {
+    producer_usage = GRALLOC_USAGE_PRIVATE_ALLOC_UBWC;
   }
 
   Perform_(gralloc_device_, GRALLOC_MODULE_PERFORM_GET_ATTRIBUTES, width, height, format,
@@ -373,6 +400,10 @@ DisplayError HWCBufferAllocator::MapBuffer(const private_handle_t *handle, int a
   }
 
   return kErrorNone;
+}
+
+DisplayError HWCBufferAllocator::UnmapBuffer(const private_handle_t *handle, int* release_fence) {
+  return (DisplayError)(Unlock_(gralloc_device_, handle, release_fence));
 }
 
 }  // namespace sdm

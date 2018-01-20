@@ -22,7 +22,7 @@ LOCAL_SHARED_LIBRARIES        := libsdmcore libqservice libbinder libhardware li
                                  libutils libcutils libsync libqdutils libqdMetaData libdl libdrmutils \
                                  libsdmutils libc++ liblog libgrallocutils libdl \
                                  vendor.display.config@1.0_vendor libhidlbase libhidltransport \
-                                 libui libgpu_tonemapper
+                                 libui libgpu_tonemapper libbfqio_vendor
 
 ifneq ($(TARGET_USES_GRALLOC1), true)
     LOCAL_SHARED_LIBRARIES += libmemalloc
@@ -42,7 +42,8 @@ LOCAL_SRC_FILES               := hwc_session.cpp \
                                  ../hwc/cpuhint.cpp \
                                  ../hwc/hwc_socket_handler.cpp \
                                  display_null.cpp \
-                                 hwc_tonemapper.cpp
+                                 hwc_tonemapper.cpp \
+                                 hwc_display_external_test.cpp
 
 ifneq ($(TARGET_USES_GRALLOC1), true)
     LOCAL_SRC_FILES += ../hwc/hwc_buffer_allocator.cpp
