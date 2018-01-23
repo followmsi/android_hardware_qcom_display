@@ -28,6 +28,7 @@
  */
 #include <log/log.h>
 #include <fcntl.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <linux/fb.h>
 #include <linux/msm_mdp.h>
