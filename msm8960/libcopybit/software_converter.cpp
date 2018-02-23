@@ -28,6 +28,8 @@
  */
 
 #include <cutils/log.h>
+#include <log/log.h>
+#include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include "software_converter.h"
