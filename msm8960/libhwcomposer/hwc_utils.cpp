@@ -653,7 +653,6 @@ int hwc_sync(hwc_context_t *ctx, hwc_display_contents_1_t* list, int dpy,
     int acquireFd[MAX_NUM_APP_LAYERS];
     int count = 0;
     int releaseFd = -1;
-    int retireFd = -1;
     int fbFd = -1;
     bool swapzero = false;
     int mdpVersion = qdutils::MDPVersion::getInstance().getMDPVersion();
@@ -666,7 +665,6 @@ int hwc_sync(hwc_context_t *ctx, hwc_display_contents_1_t* list, int dpy,
     }
     data.acq_fen_fd = acquireFd;
     data.rel_fen_fd = &releaseFd;
-    data.retire_fen_fd = &retireFd;
 
 #ifdef DEBUG_SWAPINTERVAL
     char property[PROPERTY_VALUE_MAX];
@@ -769,10 +767,6 @@ int hwc_sync(hwc_context_t *ctx, hwc_display_contents_1_t* list, int dpy,
         ctx->mLayerRotMap[dpy]->setReleaseFd(releaseFd);
     }
     close(releaseFd);
-    if(UNLIKELY(swapzero))
-        list->retireFenceFd = -1;
-    else
-        list->retireFenceFd = retireFd;
     return ret;
 }
 
