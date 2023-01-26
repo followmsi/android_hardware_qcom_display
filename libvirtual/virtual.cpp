@@ -31,6 +31,7 @@
 #define DEBUG 0
 #include <ctype.h>
 #include <fcntl.h>
+#include <android/media/IAudioPolicyService.h>
 #include <media/AudioSystem.h>
 #include <utils/threads.h>
 #include <utils/Errors.h>
